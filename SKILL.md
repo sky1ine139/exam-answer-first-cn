@@ -78,22 +78,35 @@ description: 中文应试答题 Skill。先给一段可以直接抄写到试卷�
 
 本机工具链:Python 3.13 + matplotlib 3.11 + numpy 2.4;MATLAB R2024b 可用但启动慢,非首选。**没有** graphviz、mermaid-cli、LaTeX。本 GUI 支持 KaTeX 公式,但**不支持 Mermaid**,流程类图不要指望它。
 
-### 图床(内联显示图片的关键)
+### 图片怎么让用户真正看到(关键)
 
-**绘图脚本与图片一律放临时目录,不要写进用户的资料目录**——用户不需要留存这些文件,唯一要交付的就是聊天里显示出来的那张图。
+**本地图床(`http://127.0.0.1:...`)只在当前这台机器的浏览器里有效**:换个客户端(网页版 AI、手机、别人的电脑)打不开,图片文件一旦从临时目录清掉,历史对话里的图也会变成空白占位。所以**默认走公网链接**。
 
-- 临时目录:`$env:TEMP\dsh-figs`
-- 服务:`python -m http.server 8765 --bind 127.0.0.1 --directory <临时目录>`(后台运行)
-- 内联语法:`![说明](http://127.0.0.1:8765/<ascii-name>.png)`
+固定三步:
 
-每次画图前先确认服务在跑,不在则拉起:
+1. **画图** → 输出到临时目录 `$env:TEMP\dsh-figs`(脚本与 PNG 都不写进用户的资料目录)。
+2. **上传** → 用本 skill 自带脚本推送到本仓库的 `figs/` 目录,拿到公网链接:
 
-```powershell
-$d = Join-Path $env:TEMP "dsh-figs"
-New-Item -ItemType Directory -Force -Path $d | Out-Null
-try { Invoke-WebRequest "http://127.0.0.1:8765/" -UseBasicParsing -TimeoutSec 3 | Out-Null; "server up" }
-catch { "server down -> 需要以后台方式启动 python -m http.server 8765 --bind 127.0.0.1 --directory $d" }
-```
+   ```powershell
+   python "$env:USERPROFILE\.dsh\skills\exam-answer-first-cn\assets\publish_fig.py" <png路径> --name <英文短名>
+   ```
+
+   脚本会打印 jsDelivr 与 raw 两个链接,并自动给文件名加时间戳;**jsDelivr 国内可直连,优先用**。
+3. **内联** → 回答里写 `![说明](jsDelivr链接)`。
+
+约束与兜底:
+
+- 图宽 700–900 px、单文件 ≤ 300 KB(`publish_fig.py` 会自动压缩超限的图)。
+- 文件名由脚本自动加时间戳,避免 CDN 缓存旧图。
+- **上传失败时**(无网络、无 git 凭证、推送被拒):退化为本地图床——
+
+  ```powershell
+  $d = Join-Path $env:TEMP "dsh-figs"
+  python -m http.server 8765 --bind 127.0.0.1 --directory $d   # 后台运行
+  ```
+
+  并在回答里**明确写「该链接仅在本机有效」**,不要让用户以为换个客户端也能看。
+- 图会公开在 GitHub 仓库里——这是让图片在任何客户端都能显示、且历史对话长期有效的代价;若用户要求隐私,可改用私有仓库,但私有仓库的链接对外部客户端无效,那时只能退回本地图床。
 
 ### 写脚本时的固定要点
 
