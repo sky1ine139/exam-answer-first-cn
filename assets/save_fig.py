@@ -24,6 +24,13 @@ import re
 import shutil
 import sys
 
+# Windows 控制台默认 GBK,中文提示会变乱码;统一切到 UTF-8(失败则忽略)
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 FIG_DIR = os.path.join(os.path.expanduser("~"), ".dsh", "exam-figs")
 
 
