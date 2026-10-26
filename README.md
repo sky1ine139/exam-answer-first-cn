@@ -19,26 +19,27 @@
 - **提行是必要的,冗词是不必要的**:一句文字、一行公式,像手写在答题纸上那样
 - **公式用 LaTeX**:行内 `$...$`、独立成行 `$$...$$`
 - **按需画图**:题目已把结构图、电路图作为已知条件给出时不要重画
-- **图用公网链接内联**(见下),不用 ASCII 字符硬拼框图
+- **图用本地绝对路径内联**(见下),不用 ASCII 字符硬拼框图
 - 不编造教材页码、公式编号、题号、图号;图中连线读不清时明确说明,并给出条件性答案
 
 ## 图片怎么显示
 
-本地图床(`http://127.0.0.1:...`)只在当前机器的浏览器里有效:网页版 AI、手机、别人的电脑都打不开;图片文件被清掉后,历史对话里的图也会变成空白。所以本 skill 默认走**公网链接**:
+默认走**本机文件路径**:DeepSeek Harness 的 GUI 原生支持渲染绝对路径图片(内部走 `GET /api/file?path=<绝对路径>`),不依赖外网。公网 CDN 在国内网络下经常被墙,聊天里会显示「图片无法预览」。
 
 1. **画图** → 输出到临时目录
-2. **上传** → 用 `assets/publish_fig.py` 把图 commit + push 到本仓库的 `figs/` 目录
-3. **内联** → 回答里用 jsDelivr CDN 链接
+2. **落到本地图库** → `assets/save_fig.py` 复制到 `~/.dsh/exam-figs/` 并输出链接
+3. **内联** → 回答里写 `![](C:/Users/<你>/.dsh/exam-figs/<name>-<时间戳>.png)`
 
 ```bash
-python assets/publish_fig.py <png路径> --name <英文短名>
-# 打印 jsDelivr 与 raw 两个链接,直接写进回答
+python assets/save_fig.py <png路径> --name <英文短名>
+# 打印本地绝对路径与可直接粘贴的 markdown 行
 ```
 
 - 图宽 700–900 px、单文件 ≤ 300 KB,脚本会自动压缩超限的图
-- 文件名自动加时间戳,避免 CDN 缓存旧图
-- 上传失败时退化为本地图床,并在回答里注明"该链接仅在本机有效"
-- 图会公开在本仓库的 `figs/` 目录中
+- 文件名自动加时间戳,避免同名覆盖
+- **自动清理**:每次运行删除超过 7 天的旧图(`--keep-days N` 可调;`--clean --keep-days 0` 立即清空)
+- 用户也可以直接删掉整个 `~/.dsh/exam-figs/` 目录
+- 代价:只在当前这台机器有效,换客户端/换机器打不开;要跨设备共享时改用 `assets/publish_fig.py` 推公网图床
 
 ## 安装
 
@@ -55,12 +56,7 @@ python assets/publish_fig.py <png路径> --name <英文短名>
 绘图部分(可选,不画图也能工作)需要:
 
 - Python 3 + matplotlib + Pillow(中文字体建议 Microsoft YaHei 或 SimHei)
-- git 与可推送的 GitHub 仓库(图片走公网链接时)
-- 兜底的本地静态服务:
-
-```bash
-python -m http.server 8765 --bind 127.0.0.1 --directory "$TEMP/dsh-figs"
-```
+- git 与可推送的 GitHub 仓库(仅在需要跨设备共享、走公网图床时才需要)
 
 ## 目录结构
 
@@ -69,8 +65,9 @@ exam-answer-first-cn/
 ├── SKILL.md                # 主文件:输出契约、写法规则、绘图规范、正反例
 ├── assets/
 │   ├── block_diagram.py    # 纵向方框图模板(参数化:--nodes / --feedback / --out …)
-│   └── publish_fig.py      # 把图推送到 figs/ 并输出公网链接
-└── figs/                   # 答题时生成的图(公开托管)
+│   ├── save_fig.py         # 默认:复制到 ~/.dsh/exam-figs/ 并输出本地绝对路径
+│   └── publish_fig.py      # 可选:推送到 figs/ 输出公网 CDN 链接
+└── figs/                   # 走公网图床时的托管目录
 ```
 
 ## 许可
